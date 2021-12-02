@@ -42,7 +42,6 @@ namespace AdventCoding2021
                 {
                     count++;
                 }
-
             }
             return count.ToString();
         }
