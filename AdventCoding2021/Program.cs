@@ -45,7 +45,6 @@ namespace AdventCoding2021
                     try
                     {
                         part = "A";
-                        Console.Write("Day " + day + part + ": ");
                         string problem = File.ReadAllText("Day" + day + "\\input.txt");
                         Stopwatch sw = new Stopwatch();
                         Type dayClass = Type.GetType("AdventCoding2021.Day" + day);
@@ -54,10 +53,10 @@ namespace AdventCoding2021
                         string answer = partMethod.Invoke(dayClass, new object[] { problem }).ToString();
                         sw.Stop();
                         //Console.Write("Answer: " + answer + " ");
+                        Console.Write("Day " + day + part + ": ");
                         Console.WriteLine("In: " + Convert.ToDouble(sw.ElapsedMilliseconds) / 1000 + "s");
 
                         part = "B";
-                        Console.Write("Day " + day + part + ": ");
                         problem = File.ReadAllText("Day" + day + "\\input.txt");
                         sw = new Stopwatch();
                         dayClass = Type.GetType("AdventCoding2021.Day" + day);
@@ -66,8 +65,11 @@ namespace AdventCoding2021
                         answer = partMethod.Invoke(dayClass, new object[] { problem }).ToString();
                         sw.Stop();
                         //Console.Write("Answer: " + answer + " ");
+                        Console.Write("Day " + day + part + ": ");
                         Console.WriteLine("In: " + Convert.ToDouble(sw.ElapsedMilliseconds) / 1000 + "s");
                     }
+                    catch (System.IO.DirectoryNotFoundException e)
+                    { }
                     catch (Exception e)
                     {
                         Console.WriteLine(e.ToString());
