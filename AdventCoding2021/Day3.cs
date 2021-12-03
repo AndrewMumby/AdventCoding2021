@@ -78,15 +78,7 @@ namespace AdventCoding2021
                 position++;
             }
             // convert the remaining value to an int
-            int firstAnswer = 0;
-            foreach(char c in remainingLines[0])
-            {
-                firstAnswer *= 2;
-                if (c == '1')
-                {
-                    firstAnswer++;
-                }
-            }
+            int firstAnswer = Convert.ToInt32(remainingLines[0], 2);
 
             // now do it again, but differently
             position = 0;
@@ -119,15 +111,7 @@ namespace AdventCoding2021
                 position++;
             }
             // convert the remaining value to an int
-            int secondAnswer = 0;
-            foreach (char c in remainingLines[0])
-            {
-                secondAnswer *= 2;
-                if (c == '1')
-                {
-                    secondAnswer++;
-                }
-            }
+            int secondAnswer = Convert.ToInt32(remainingLines[0],2);
 
             return (firstAnswer * secondAnswer).ToString();
 
