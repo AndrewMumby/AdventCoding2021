@@ -68,7 +68,7 @@ namespace AdventCoding2021
                         Console.Write("Day " + day + part + ": ");
                         Console.WriteLine("In: " + Convert.ToDouble(sw.ElapsedMilliseconds) / 1000 + "s");
                     }
-                    catch (System.IO.DirectoryNotFoundException e)
+                    catch (System.IO.DirectoryNotFoundException)
                     { }
                     catch (Exception e)
                     {
