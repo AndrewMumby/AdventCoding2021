@@ -76,13 +76,14 @@ namespace AdventCoding2021
                     }
                 }
             }
-            else if (input != "")
-            {
-                day = Convert.ToInt32(input.Substring(0, input.Length - 1));
-                part = input.Substring(input.Length - 1).ToUpper();
-            }
             else
             {
+                if (input != "")
+                {
+                    day = Convert.ToInt32(input.Substring(0, input.Length - 1));
+                    part = input.Substring(input.Length - 1).ToUpper();
+
+                }
                 Console.WriteLine("Running code for " + day + part);
                 Type dayClass = Type.GetType("AdventCoding2021.Day" + day);
                 if (dayClass != null)
@@ -133,6 +134,7 @@ namespace AdventCoding2021
                             Console.WriteLine("Tests failed. Aborting");
                         }
                     }
+
                 }
             }
             Console.ReadLine();
