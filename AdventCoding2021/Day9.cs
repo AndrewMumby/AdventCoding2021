@@ -15,13 +15,10 @@ namespace AdventCoding2021
             int sum = 0;
             foreach (IntVector2 lowPoint in lowPoints)
             {
-                Console.Write(lowPoint + " is height " + map.GetHeight(lowPoint) + " and is surrounded by ");
                 foreach (IntVector2 direction in IntVector2.CardinalDirections)
                 {
                     IntVector2 newLocation = lowPoint.Add(direction);
-                    Console.Write(map.GetHeight(newLocation) + " ");
                 }
-                Console.WriteLine();
                 sum += map.GetHeight(lowPoint) + 1;
             }
             return sum.ToString();
