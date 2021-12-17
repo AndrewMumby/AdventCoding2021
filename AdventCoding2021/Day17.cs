@@ -136,9 +136,9 @@ namespace AdventCoding2021
         internal List<IntVector2> AllGoodShots()
         {
             List<IntVector2> goodShots = new List<IntVector2>();
-            for (int y = -1000; y <= 1000; y++)
+            for (int y = targetAreaBottom-1; y <= 1000; y++)
             {
-                for (int x = -1000; x <= 1000; x++)
+                for (int x = 0; x <= targetAreaRight+1; x++)
                 {
                     IntVector2 shotVector = new IntVector2(x, y);
                     if (Hits(shotVector))
