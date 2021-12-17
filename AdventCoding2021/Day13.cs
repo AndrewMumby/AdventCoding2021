@@ -29,7 +29,7 @@ namespace AdventCoding2021
             GiantPaper paper = new GiantPaper(dots);
             paper.Fold(folds[0]);
 
-            paper.DrawImage();
+         //   paper.DrawImage();
 
             return paper.DotCount();
         }
