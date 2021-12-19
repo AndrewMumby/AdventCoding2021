@@ -30,12 +30,27 @@ namespace AdventCoding2021
 
             // Now we need to find the overlaps
             List<HashSet<IntVector3>> foundScanners = new List<HashSet<IntVector3>>();
+            Queue<HashSet<IntVector3>> newFoundScanners = new Queue<HashSet<IntVector3>>();
             foundScanners.Add(remainingScanners[0].orientationPictures[0]);
+            newFoundScanners.Enqueue(remainingScanners[0].orientationPictures[0]);
+
             HashSet<IntVector3> scannerLocations = new HashSet<IntVector3>();
             remainingScanners.RemoveAt(0);
-            while (remainingScanners.Count > 0)
+            while (newFoundScanners.Count > 0)
             {
-                scannerLocations.Add(FindMatch(foundScanners, remainingScanners));
+                HashSet<IntVector3> newScanner = newFoundScanners.Dequeue();
+                for (int i = remainingScanners.Count - 1; i >= 0; i--)
+                {
+                    HashSet<IntVector3> newFixedOrientation;
+                    IntVector3 scannerLocation = FindMatch(newScanner, remainingScanners[i], out newFixedOrientation);
+                    if (scannerLocation != null)
+                    {
+                        scannerLocations.Add(scannerLocation);
+                        foundScanners.Add(newFixedOrientation);
+                        newFoundScanners.Enqueue(newFixedOrientation);
+                        remainingScanners.RemoveAt(i);
+                    }
+                }
             }
 
             // With all overlaps found, we now need to count the points
@@ -76,12 +91,27 @@ namespace AdventCoding2021
 
             // Now we need to find the overlaps
             List<HashSet<IntVector3>> foundScanners = new List<HashSet<IntVector3>>();
+            Queue<HashSet<IntVector3>> newFoundScanners = new Queue<HashSet<IntVector3>>();
             foundScanners.Add(remainingScanners[0].orientationPictures[0]);
+            newFoundScanners.Enqueue(remainingScanners[0].orientationPictures[0]);
+
             HashSet<IntVector3> scannerLocations = new HashSet<IntVector3>();
             remainingScanners.RemoveAt(0);
-            while (remainingScanners.Count > 0)
+            while (newFoundScanners.Count > 0)
             {
-                scannerLocations.Add(FindMatch(foundScanners, remainingScanners));
+                HashSet<IntVector3> newScanner = newFoundScanners.Dequeue();
+                for(int i = remainingScanners.Count - 1; i >= 0; i--)
+                {
+                    HashSet<IntVector3> newFixedOrientation;
+                    IntVector3 scannerLocation = FindMatch(newScanner, remainingScanners[i], out newFixedOrientation);
+                    if (scannerLocation != null)
+                    {
+                        scannerLocations.Add(scannerLocation);
+                        foundScanners.Add(newFixedOrientation);
+                        newFoundScanners.Enqueue(newFixedOrientation);
+                        remainingScanners.RemoveAt(i);
+                    }
+                }
             }
 
             // With all overlaps found, we now need to find the largest distance
@@ -100,38 +130,33 @@ namespace AdventCoding2021
         }
 
 
-        private static IntVector3 FindMatch(List<HashSet<IntVector3>> fixedOrientations, List<Scanner> remainingScanners)
+        private static IntVector3 FindMatch(HashSet<IntVector3> fixedOrientation, Scanner remainingScanner, out HashSet<IntVector3> newFixedOrientation)
         {
-            for (int i = 0; i < remainingScanners.Count; i++)
-            {
                 // look through the available orientations to find a match with one of the fixed orientations
-                foreach (HashSet<IntVector3> orientation in remainingScanners[i].orientationPictures)
+                foreach (HashSet<IntVector3> orientation in remainingScanner.orientationPictures)
                 {
-                    foreach (HashSet<IntVector3> fixedOrientation in fixedOrientations)
+                    // align each point with each other point, and check for a match
+                    foreach (IntVector3 fixedPoint in fixedOrientation)
                     {
-                        // align each point with each other point, and check for a match
-                        foreach (IntVector3 fixedPoint in fixedOrientation)
+                        foreach (IntVector3 floatingPoint in orientation)
                         {
-                            foreach (IntVector3 floatingPoint in orientation)
+                            IntVector3 translation = IntVector3.Subtract(fixedPoint, floatingPoint);
+                            HashSet<IntVector3> adjustedOrientation = new HashSet<IntVector3>();
+                            foreach (IntVector3 floatingBeacon in orientation)
                             {
-                                IntVector3 translation = IntVector3.Subtract(fixedPoint, floatingPoint);
-                                HashSet<IntVector3> adjustedOrientation = new HashSet<IntVector3>();
-                                foreach (IntVector3 floatingBeacon in orientation)
-                                {
-                                    adjustedOrientation.Add(IntVector3.Add(floatingBeacon, translation));
-                                }
+                                adjustedOrientation.Add(IntVector3.Add(floatingBeacon, translation));
+                            }
 
-                                if (MatchCount(fixedOrientation, adjustedOrientation) >= 12)
-                                {
-                                    remainingScanners.RemoveAt(i);
-                                    fixedOrientations.Add(adjustedOrientation);
-                                    return translation;
-                                }
+                            if (MatchCount(fixedOrientation, adjustedOrientation) >= 12)
+                            {
+                                newFixedOrientation = adjustedOrientation;
+                                return translation;
                             }
                         }
-                    }
+
                 }
             }
+            newFixedOrientation = null;
             return null;
         }
 
