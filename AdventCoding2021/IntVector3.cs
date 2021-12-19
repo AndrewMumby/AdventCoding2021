@@ -220,5 +220,33 @@ namespace AdventCoding2021
         {
             return new IntVector3(x, y, z - 1);
         }
+
+        internal IntVector3 YawLeft()
+        {
+            return new IntVector3(-y, x, z);
+        }
+        internal IntVector3 YawRight()
+        {
+            return new IntVector3(y, -x, z);
+        }
+        internal IntVector3 RollLeft()
+        {
+            return new IntVector3(-z, y, x);
+        }
+
+        internal IntVector3 RollRight()
+        {
+            return new IntVector3(z, y, -x);
+        }
+
+        internal IntVector3 PitchUp()
+        {
+            return new IntVector3(x, -z, y);
+        }
+
+        internal IntVector3 PitchDown()
+        {
+            return new IntVector3(x, z, -y);
+        }
     }
 }
