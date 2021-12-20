@@ -57,6 +57,7 @@
     <Compile Include="Day18.cs" />
     <Compile Include="Day19.cs" />
     <Compile Include="Day2.cs" />
+    <Compile Include="Day20.cs" />
     <Compile Include="Day3.cs" />
     <Compile Include="Day4.cs" />
     <Compile Include="Day5.cs" />
@@ -64,6 +65,7 @@
     <Compile Include="Day7.cs" />
     <Compile Include="Day8.cs" />
     <Compile Include="Day9.cs" />
+    <Compile Include="IntField2.cs" />
     <Compile Include="IntVector2.cs" />
     <Compile Include="IntVector3.cs" />
     <Compile Include="IntVector4.cs" />
