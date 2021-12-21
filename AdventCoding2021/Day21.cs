@@ -11,8 +11,8 @@ namespace AdventCoding2021
         public static string A (string input)
         {
             string[] lines = input.Split(new string[] {Environment.NewLine}, StringSplitOptions.RemoveEmptyEntries);
-            int player1Start = int.Parse(lines[0].Substring(28,1));
-            int player2Start = int.Parse(lines[1].Substring(28, 1));
+            int player1Start = int.Parse(lines[0].Substring(28));
+            int player2Start = int.Parse(lines[1].Substring(28));
             DiceGame game = new DiceGame(player1Start, player2Start);
             return game.PlayTillWin().ToString();
 
@@ -21,8 +21,8 @@ namespace AdventCoding2021
         public static string B (string input)
         {
             string[] lines = input.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-            int player1Start = int.Parse(lines[0].Substring(28, 1));
-            int player2Start = int.Parse(lines[1].Substring(28, 1));
+            int player1Start = int.Parse(lines[0].Substring(28));
+            int player2Start = int.Parse(lines[1].Substring(28));
             DiracDiceGame game = new DiracDiceGame(player1Start, player2Start);
             return game.MaxWinCount().ToString();
 
