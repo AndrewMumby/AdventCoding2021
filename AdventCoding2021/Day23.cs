@@ -186,6 +186,11 @@ namespace AdventCoding2021
                 {
                     // in a burrow
                     // Can move to any available corridor slot
+                    // Are we already home?
+                    if (IsHome(location))
+                    {
+                        continue;
+                    }
                     // Do we have a clean path out of the burrow?
                     if (!CleanPath(location, new IntVector2(location.X, 1)))
                     {
@@ -275,6 +280,20 @@ namespace AdventCoding2021
                 }
             }
             return newStates;
+        }
+
+        private bool IsHome(IntVector2 location)
+        {
+            // Home if we're in the right burrow, and there's noone below us that shouldn't be in this burrow
+            if (BurrowLocation(amphs[location]) != location.X)
+            {
+                return false;
+            }
+            if (CleanBurrow(amphs[location]))
+            {
+                return true;
+            }
+            return false;
         }
 
         private bool CleanPath(IntVector2 location, IntVector2 newLocation)
