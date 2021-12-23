@@ -23,7 +23,7 @@ namespace AdventCoding2021
         public AmphSorter(string input)
         {
             toDo = new SortedDictionary<int, HashSet<AmphState>>();
-            lowestScores = new Dictionary<AmphState,int>();
+            lowestScores = new Dictionary<AmphState, int>();
             AmphState startState = new AmphState(input);
             toDo.Add(0, new HashSet<AmphState> { startState });
         }
@@ -33,98 +33,25 @@ namespace AdventCoding2021
             while (true)
             {
                 int lowestScore = toDo.Keys.Min();
-                int prevScore = 0;
                 HashSet<AmphState> amphStates = toDo[lowestScore];
-                //if (lowestScore % 100 == 0)
-                {
-                    //Console.WriteLine();
-                   // Console.WriteLine("Working on lowestScore = " + lowestScore +" Size = " + amphStates.Count + " Done = " + done.Count);
-                    //Console.WriteLine();
-                }
-
+                Console.WriteLine(lowestScore + " " + amphStates.Count);
                 toDo.Remove(lowestScore);
                 foreach (AmphState amphState in amphStates)
                 {
-                    amphState.DebugWatch(lowestScore);
                     if (amphState.IsSolved())
                     {
                         return lowestScore;
                     }
                     // find all the states
-                    for (int i = 0; i < AmphState.slotCount; i++)
+                    Dictionary<int, HashSet<AmphState>> newStates = amphState.FindAllNewStates();
+                    //Console.Clear();
+                    //Console.WriteLine(amphState.Draw());
+
+                    //Console.WriteLine("PRODUCES");
+
+                    foreach (KeyValuePair<int, HashSet<AmphState>> scoreStatePair in newStates)
                     {
-                        if (!amphState.IsEmpty(i))
-                        {
-                            // It's a amph
-                            // Where can it go?
-                            // either its in the corridor, or its in a burrow
-                            if (AmphState.InCorridor(i))
-                            {
-                                // in the corridor
-                                // we can only move into our assigned burrow, into the lowest slot
-                                // 1) burrow needs to be empty
-                                if (!amphState.BurrowReady(i))
-                                {
-                                    continue;
-                                }
-                                // 2) need to have a clear path to the burrow
-                                if (!amphState.CanPathToBurrow(i))
-                                {
-                                    continue;
-                                }
-
-                                // If we're here, we can go to the burrow
-
-                                int cost = amphState.MoveToBurrow(i, out AmphState newState);
-                                AddToToDo(lowestScore + cost, newState);
-                            }
-                            else
-                            {
-                                // in a burrow
-                                // We can move to any empty corridor slot we can reach
-                                // 1) burrow slot above us needs to be empty
-                                //  a) We're on the top slot
-                                //  b) We're in the bottom slot and the top slot is empty
-                                if (amphState.IsBottomSlot(i) && !amphState.IsEmptyAbove(i))
-                                {
-                                    continue;
-                                }
-
-                                // 2) We're not already home and not blocking an intruder
-                                if (amphState.IsHome(i) && amphState.IsTopSlot(i) && amphState.IsHome(i+1))
-                                {
-                                    continue;
-                                }
-
-                                // iterate out each way, working out the cost, until we hit walls. Add all the possibilities to the todo list
-                                // first, left
-                                int pos = i;
-                                while (true)
-                                {
-                                    pos = AmphState.LeftCorridor(pos);
-                                    if (pos == -1 || !amphState.IsEmpty(pos))
-                                    {
-                                        break;
-                                    }
-                                    // Add the move to this location to the todo list
-                                    int cost = amphState.MoveToCorridor(i, pos, out AmphState newState);
-                                    AddToToDo(lowestScore + cost, newState);
-                                }
-                                // then right
-                                pos = i;
-                                while (true)
-                                {
-                                    pos = AmphState.RightCorridor(pos);
-                                    if (pos == -1 || !amphState.IsEmpty(pos))
-                                    {
-                                        break;
-                                    }
-                                    // Add the move to this location to the todo list
-                                    int cost = amphState.MoveToCorridor(i, pos, out AmphState newState);
-                                    AddToToDo(lowestScore + cost, newState);
-                                }
-                            }
-                        }
+                        AddToToDo(lowestScore + scoreStatePair.Key, scoreStatePair.Value);
                     }
                 }
             }
@@ -143,7 +70,7 @@ namespace AdventCoding2021
                     lowestScores[state] = score;
                 }
 
-                // Console.WriteLine("Adding " + state.ToString() + " at cost " + score);
+                //Console.WriteLine(state.Draw());
                 if (!toDo.ContainsKey(score))
                 {
                     toDo.Add(score, new HashSet<AmphState> { state });
@@ -155,423 +82,417 @@ namespace AdventCoding2021
             }
         }
 
+        private void AddToToDo(int score, HashSet<AmphState> states)
+        {
+            foreach (AmphState state in states)
+            {
+                AddToToDo(score, state);
+            }
+        }
+
     }
 
     internal class AmphState
     {
-        // field has 2 side corridors, 3 spots above burrows and then another 2 side corridors. There are 4 burrows, each with 2 slots top then bottom
-        // ssbbtbbtbbtbbss
-        // ..
-        string layout;
-
-        private static readonly int[] corridorSlots = new int[] { 0, 1, 4, 7, 10, 13, 14 };
-        private static readonly int[] topSlots = new int[] { 2, 5, 8, 11 };
-        private static readonly int[] bottomSlots = new int[] { 3, 6, 9, 12 };
-        internal static readonly int slotCount = 15;
-        private static readonly int[] costs = new int[] { 1, 10, 100, 1000 };
-
+        Dictionary<IntVector2, char> amphs;
+        static int maxY;
+        static readonly HashSet<int> corridorXPoints = new HashSet<int>(){ 1, 2, 4, 6, 8, 10, 11};
+        static readonly IntVector2[] corridorStoppingPoints = new IntVector2[] { new IntVector2(1, 1), new IntVector2(2, 1), new IntVector2(4, 1), new IntVector2(6, 1), new IntVector2(8, 1), new IntVector2(10, 1), new IntVector2(11, 1) };
 
         public AmphState(string input)
         {
-            string[] lines = input.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length == 1)
-            {
-                layout = input;
-            }
-            else
-            {
-                /*
-                    0123456789012
-                  0 #############
-                  1 #...........#
-                  2 ###B#C#B#D###
-                  3   #A#D#C#A#
-                  4   #########
-                */
-                // 012345678901234
-                // ssbbtbbtbbtbbss
-
-                StringBuilder sb = new StringBuilder();
-                sb.Append(lines[1][1]);
-                sb.Append(lines[1][2]);
-                sb.Append(lines[2][3]);
-                sb.Append(lines[3][3]);
-                sb.Append(lines[1][4]);
-                sb.Append(lines[2][5]);
-                sb.Append(lines[3][5]);
-                sb.Append(lines[1][6]);
-                sb.Append(lines[2][7]);
-                sb.Append(lines[3][7]);
-                sb.Append(lines[1][8]);
-                sb.Append(lines[2][9]);
-                sb.Append(lines[3][9]);
-                sb.Append(lines[1][10]);
-                sb.Append(lines[1][11]);
-
-                layout = sb.ToString();
-            }
-        }
-
-        public static bool InCorridor(int i)
-        {
-            return corridorSlots.Contains(i);
-        }
-
-        private int AmphNo(char amph)
-        {
-            return amph - 'A';
-        }
-
-        private int BurrowTopLocation(char amph)
-        {
-            return topSlots[AmphNo(amph)];
-        }
-
-        private int BurrowBottomLocation(char amph)
-        {
-            return bottomSlots[AmphNo(amph)];
-        }
-
-        public bool BurrowReady(int pos)
-        {
-            int burrowTopNo = BurrowTopLocation(layout[pos]);
-            int burrowBottomNo = BurrowBottomLocation(layout[pos]);
-
-            if (layout[burrowTopNo] != '.')
-            {
-                return false;
-            }
-            if (layout[burrowBottomNo] == layout[pos] || layout[burrowBottomNo] == '.')
-            {
-                return true;
-            }
-            return false;
-        }
-
-        public override bool Equals(object obj)
-        {
-            //Check for null and compare run-time types.
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
-            {
-                return false;
-            }
-            else
-            {
-                AmphState v = (AmphState)obj;
-                return v.layout == layout;
-            }
-        }
-
-        public override int GetHashCode()
-        {
-            return layout.GetHashCode();
-        }
-
-        public string Draw()
-        {
-            StringBuilder sb = new StringBuilder();
-            /*
-                0123456789012
+            /*  0123456789012
                 #############
                 #...........#
                 ###B#C#B#D###
+                  #D#C#B#A#
+                  #D#B#A#C#
                   #A#D#C#A#
                   #########
             */
-            // 012345678901234
-            // ssbbtbbtbbtbbss
-            sb.AppendLine("#############");
+            amphs = new Dictionary<IntVector2, char>();
 
-            sb.Append("#");
-            sb.Append(layout.Substring(0, 2));
-            sb.Append('.');
-            sb.Append(layout[4]);
-            sb.Append('.');
-            sb.Append(layout[7]);
-            sb.Append('.');
-            sb.Append(layout[10]);
-            sb.Append('.');
-            sb.Append(layout.Substring(13, 2));
-            sb.AppendLine("#");
-
-            sb.Append("###");
-            sb.Append(layout[2]);
-            sb.Append('#');
-            sb.Append(layout[5]);
-            sb.Append('#');
-            sb.Append(layout[8]);
-            sb.Append('#');
-            sb.Append(layout[11]);
-            sb.AppendLine("###");
-
-            sb.Append("  #");
-            sb.Append(layout[3]);
-            sb.Append('#');
-            sb.Append(layout[6]);
-            sb.Append('#');
-            sb.Append(layout[9]);
-            sb.Append('#');
-            sb.Append(layout[12]);
-            sb.AppendLine("#");
-
-            sb.AppendLine("  #########");
-
-            return sb.ToString();
-        }
-
-        public override string ToString()
-        {
-            return layout;
-        }
-
-        internal bool IsBottomSlot(int i)
-        {
-            return bottomSlots.Contains(i);
-        }
-
-        internal bool IsTopSlot(int i)
-        {
-            return topSlots.Contains(i);
-        }
-
-        internal bool IsEmptyAbove(int i)
-        {
-            if (!bottomSlots.Contains(i))
+            string[] lines = input.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            for (int y = 0; y < lines.Length; y++)
             {
-                throw new Exception("Can't be empty above if not in a bottom slot");
-            }
-            return IsEmpty(i - 1);
-        }
-
-        internal bool IsHome(int i)
-        {
-            char c = layout[i];
-            return i == BurrowBottomLocation(c) || i == BurrowTopLocation(c);
-        }
-
-        internal bool IsEmpty(int i)
-        {
-            return layout[i] == '.';
-        }
-
-        internal static int LeftCorridor(int i)
-        {
-            i--;
-            while (i >= 0)
-            {
-                if (corridorSlots.Contains(i))
+                for (int x = 0; x < lines[y].Length; x++)
                 {
-                    return i;
-                }
-                i--;
-            }
-            return -1;
-        }
-        internal static int RightCorridor(int i)
-        {
-            i++;
-            while (i < 15)
-            {
-                if (corridorSlots.Contains(i))
-                {
-                    return i;
-                }
-                i++;
-            }
-            return -1;
-        }
-
-        internal bool CanPathToBurrow(int i)
-        {
-            int burrowLoc = BurrowTopLocation(layout[i]);
-            if (burrowLoc < i)
-            {
-                // need to move left
-                // find our spot in the corridor array
-                int corridorSpot = Array.IndexOf(corridorSlots, i);
-                while (true)
-                {
-                    corridorSpot--;
-                    if (corridorSlots[corridorSpot] < burrowLoc)
+                    if (new char[] { 'A', 'B', 'C', 'D' }.Contains(lines[y][x]))
                     {
-                        return true;
-                    }
-                    if (!IsEmpty(corridorSlots[corridorSpot]))
-                    {
-                        return false;
+                        amphs.Add(new IntVector2(x, y), lines[y][x]);
+                        maxY = Math.Max(maxY, y);
                     }
                 }
             }
-            else
-            {
-                // need to move right
-                // find our spot in the corridor array
-                int corridorSpot = Array.IndexOf(corridorSlots, i);
-                while (true)
-                {
-                    corridorSpot++;
-                    if (corridorSlots[corridorSpot] > burrowLoc)
-                    {
-                        return true;
-                    }
-                    if (!IsEmpty(corridorSlots[corridorSpot]))
-                    {
-                        return false;
-                    }
-                }
+        }
 
+        public AmphState(AmphState oldState)
+        {
+            amphs = new Dictionary<IntVector2, char>();
+            foreach (KeyValuePair<IntVector2, char> pair in oldState.amphs)
+            {
+                amphs.Add(new IntVector2(pair.Key), pair.Value);
             }
         }
 
-        internal int MoveToBurrow(int i, out AmphState newState)
+        private bool IsEmpty(IntVector2 location)
         {
-            int moves;
-            char[] newStateArray = layout.ToCharArray();
-            newStateArray[i] = '.';
-            if (IsEmpty(BurrowBottomLocation(layout[i])))
-            {
-                newStateArray[BurrowBottomLocation(layout[i])] = layout[i];
-            }
-            else
-            {
-                newStateArray[BurrowTopLocation(layout[i])] = layout[i];
-            }
-            newState = new AmphState(new string(newStateArray));
-
-            // need to work out the move count
-            if (IsEmpty(BurrowBottomLocation(layout[i])))
-            {
-                moves = Distance(i, BurrowBottomLocation(layout[i]));
-            }
-            else
-            {
-                moves = Distance(i, BurrowTopLocation(layout[i]));
-            }
-
-            return moves * costs[AmphNo(layout[i])];
+            return !amphs.ContainsKey(location);
         }
 
-        internal int MoveToCorridor(int i, int pos, out AmphState newState)
+        internal Dictionary<int, HashSet<AmphState>> FindAllNewStates()
         {
-            int moves;
-            char[] newStateArray = layout.ToCharArray();
-            newStateArray[i] = '.';
-            newStateArray[pos] = layout[i];
-            newState = new AmphState(new string(newStateArray));
-
-            moves = Distance(i, pos);
-            return moves * costs[AmphNo(layout[i])];
-        }
-
-        internal static int Distance(int start, int end)
-        {
-
-            if (!AmphState.InCorridor(start))
+            Dictionary<int, HashSet<AmphState>> newStates = new Dictionary<int, HashSet<AmphState>>();
+            // for each amph, make a new state for each location it can move to, and add it and the cost to the list
+            foreach (KeyValuePair<IntVector2, char> pair in amphs)
             {
-                int distance = 0;
-                // We're going from a burrow to a corridor
-                if (bottomSlots.Contains(start))
+                IntVector2 location = pair.Key;
+                char type = pair.Value;
+                // Is it in the corridor?
+                if (IsCorridor(location))
                 {
-                    distance++;
-                }
-                distance++;
-                // Now we're on the corridor level
-                // Is the end to the left or the right?
-                if (end < start)
-                {
-                    // going left
-                    int i = start;
-                    while (!InCorridor(i))
+                    // in a corridor
+                    // Can only move into the right burrow
+                    // Is the burrow ready for entry?
+                    // Needs to be only appropriate amphs in there
+                    if (!CleanBurrow(pair.Value))
                     {
-                        i--;
+                        // not clean - can't do anything with this amph
+                        continue;
                     }
-                    distance++;
-                    while (i != end)
+
+                    // Clean burrow.
+                    // Can we move to that burrow?
+                    IntVector2 newLocation = BurrowTopSlot(type);
+                    if (!CleanPath(location, newLocation))
                     {
-                        if (i == 1 || i == 14)
-                        {
-                            // far ends are only 1 square movement
-                            distance--;
-                        }
-                        distance += 2;
-                        i = LeftCorridor(i);
+                        // Something's in the way - can't do anything with this amph
+                        continue;
+                    }
+                    // Create a state where we move to the burrow
+                    AmphState newState = new AmphState(this);
+                    newState.ForceMove(location, newLocation);
+                    int cost = location.Distance(newLocation) * MoveCost(type);
+                    if (newStates.ContainsKey(cost))
+                    {
+                        newStates[cost].Add(newState);
+                    }
+                    else
+                    {
+                        newStates.Add(cost, new HashSet<AmphState> { newState });
                     }
                 }
                 else
                 {
-                    // going right
-                    int i = start;
-                    while (!InCorridor(i))
+                    // in a burrow
+                    // Can move to any available corridor slot
+                    // Do we have a clean path out of the burrow?
+                    if (!CleanPath(location, new IntVector2(location.X, 1)))
                     {
-                        i++;
+                        // Blocked
+                        continue;
                     }
-                    distance++;
-                    while (i != end)
+                    if (!IsEmpty(new IntVector2(location.X, 1)))
                     {
-                        if (i == 0 || i == 13)
-                        {
-                            // far ends are only 1 square movement
-                            distance--;
+                        // Blocked
+                        continue;
+                    }
+
+                    // Now we go left and right to each stopping point
+
+                    // left
+                    int xPos = location.X;
+                    while (xPos >=1)
+                    {
+                        xPos--;
+                        if (!IsEmpty(new IntVector2(xPos,1)))
+                        { 
+                            break;
                         }
-                        distance += 2;
-                        i = RightCorridor(i);
+                        if ( corridorXPoints.Contains(xPos))
+                        {
+                            IntVector2 destination = new IntVector2(xPos, 1);
+                            AmphState newState = new AmphState(this);
+                            newState.ForceMove(location, destination);
+                            int cost = location.Distance(destination) * MoveCost(type);
+                            if (newStates.ContainsKey(cost))
+                            {
+                                newStates[cost].Add(newState);
+                            }
+                            else
+                            {
+                                newStates.Add(cost, new HashSet<AmphState> { newState });
+                            }
+                        }
+                    }
+
+                    // right
+                    xPos = location.X;
+                    while (xPos <=11)
+                    {
+                        xPos++;
+                        if (!IsEmpty(new IntVector2(xPos, 1)))
+                        {
+                            break;
+                        }
+                        if (corridorXPoints.Contains(xPos))
+                        {
+                            IntVector2 destination = new IntVector2(xPos, 1);
+                            AmphState newState = new AmphState(this);
+                            newState.ForceMove(location, destination);
+                            int cost = location.Distance(destination) * MoveCost(type);
+                            if (newStates.ContainsKey(cost))
+                            {
+                                newStates[cost].Add(newState);
+                            }
+                            else
+                            {
+                                newStates.Add(cost, new HashSet<AmphState> { newState });
+                            }
+                        }
+                    }
+
+                    /*
+                    foreach (IntVector2 destination in corridorStoppingPoints)
+                    {
+                        if (IsEmpty(destination) && CleanPath(location, destination))
+                        {
+                            AmphState newState = new AmphState(this);
+                            newState.ForceMove(location, destination);
+                            int cost = location.Distance(destination) * MoveCost(type);
+                            if (newStates.ContainsKey(cost))
+                            {
+                                newStates[cost].Add(newState);
+                            }
+                            else
+                            {
+                                newStates.Add(cost, new HashSet<AmphState> { newState });
+                            }
+                        }
+                    }
+                    */
+
+                }
+            }
+            return newStates;
+        }
+
+        private bool CleanPath(IntVector2 location, IntVector2 newLocation)
+        {
+            // move from the lower point to the higher one, for simplicity
+            if (location.Y > newLocation.Y)
+            {
+                IntVector2 wl = location;
+                // Move up till at the right level
+                while (wl.Y != newLocation.Y)
+                {
+                    wl = wl.North();
+                    if (!IsEmpty(wl))
+                    {
+                        return false;
+                    }
+                }
+
+                // Are we left or right?
+                if (wl.X > newLocation.X)
+                {
+                    // Need to move left
+                    while (wl.X != newLocation.X)
+                    {
+                        // opposite way around so we don't test the destination
+                        if (!IsEmpty(wl))
+                        {
+                            return false;
+                        }
+                        wl = wl.West();
+                    }
+                }
+                else
+                {
+                    // Need to move right
+                    while (wl.X != newLocation.X)
+                    {
+                        // opposite way around so we don't test the destination
+                        if (!IsEmpty(wl))
+                        {
+                            return false;
+                        }
+                        wl = wl.East();
                     }
 
                 }
-                return distance;
+                // We made it! 
+                return true;
             }
             else
             {
-                // Distances are symmetrical so we can just find the other direction
-                return Distance(end, start);
+                return CleanPath(newLocation, location);
             }
         }
 
+        private static int MoveCost(char type)
+        {
+            int exponent = type - 'A';
+            int value = 1;
+            while (exponent > 0)
+            {
+                value *= 10;
+                exponent--;
+            }
+            return value;
+        }
 
+        private IntVector2 BurrowTopSlot(char type)
+        {
+            int x = BurrowLocation(type);
+            for (int y = maxY; y >= 2; y--)
+            {
+                IntVector2 location = new IntVector2(x, y);
+                if (IsEmpty(location))
+                {
+                    return location;
+                }
+            }
+            throw new Exception("Burrow is full");
+        }
+
+        private static bool IsCorridor(IntVector2 location)
+        {
+            return location.Y == 1;
+        }
+
+        private static int BurrowLocation(char c)
+        {
+            return 3 + ((c - 'A') * 2);
+        }
+
+        private bool CleanBurrow(char c)
+        {
+            int x = BurrowLocation(c);
+            for (int y = 2; y <= 5; y++)
+            {
+                IntVector2 location = new IntVector2(x, y);
+                if (amphs.ContainsKey(location) && amphs[location] != c)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void ForceMove(IntVector2 start, IntVector2 end)
+        {
+            Dictionary<IntVector2, char> newAmphs = new Dictionary<IntVector2, char>();
+            foreach (KeyValuePair<IntVector2, char> pair in amphs)
+            {
+                if (pair.Key.Equals(start))
+                {
+                    newAmphs.Add(end, pair.Value);
+                }
+                else
+                {
+                    newAmphs.Add(pair.Key, pair.Value);
+                }
+            }
+            amphs = newAmphs;
+        }
 
         internal bool IsSolved()
         {
-            return layout.Equals("..AA.BB.CC.DD..");
-        }
-
-        internal void DebugWatch(int score)
-        {
-            /*
-            if (new string[] {"..BA.CD.BC.DA..",
-"..BABCD..C.DA..",
-"..BAB.D.CC.DA..",
-"..BAB..DCC.DA..",
-"..BA..BDCC.DA..",
-"...AB.BDCC.DA..",
-"...A.BBDCC.DA..",
-"...A.BBDCCD.A..",
-"...A.BBDCCD..A.",
-"...A.BBDCC..DA.",
-"...A.BB.CC.DDA.",
-"..AA.BB.CC.DD.." }.Contains(layout))
-            {
-                Console.WriteLine(layout + " " + score);
-            }
-
-            if (layout == "...AB.BDCC.DA..")
-            {
-                Console.WriteLine("This one");
-            }
-            */
-
-        }
-
-        internal int AmphCount()
-        {
+            // All the burrows need to have their appropriate critters in
             int count = 0;
-            for (int i = 0; i < slotCount; i++)
+            foreach (char c in new char[] { 'A', 'B', 'C', 'D' })
             {
-                if (layout[i] != '.')
+                int x = BurrowLocation(c);
+                int y = 2;
+                while (true)
                 {
-                    count++;
+                    IntVector2 location = new IntVector2(x, y);
+                    if (amphs.ContainsKey(location) && amphs[location] == c)
+                    {
+                        count++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    y++;
                 }
             }
-            return count;
+            return count == amphs.Count;
+        }
+
+        internal string Draw()
+        {
+            StringBuilder sb = new StringBuilder();
+            /*  0123456789012
+                #############
+                #...........#
+                ###B#C#B#D###
+                  #D#C#B#A#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+            */
+            sb.AppendLine("#############");
+            sb.Append('#');
+            for (int x = 1; x <= 11; x++)
+            {
+                IntVector2 location = new IntVector2(x, 1);
+                if (amphs.ContainsKey(location))
+                {
+                    sb.Append(amphs[location]);
+                }
+                else
+                {
+                    sb.Append('.');
+                }
+            }
+            sb.AppendLine("#");
+            for (int y = 2; y <= maxY; y++)
+            {
+                if (y == 2)
+                {
+                    sb.Append("###");
+                }
+                else
+                {
+                    sb.Append("  #");
+                }
+                sb.Append(AmphOrBlank(new IntVector2(3, y)));
+                sb.Append('#');
+                sb.Append(AmphOrBlank(new IntVector2(5, y)));
+                sb.Append('#');
+                sb.Append(AmphOrBlank(new IntVector2(7, y)));
+                sb.Append('#');
+                sb.Append(AmphOrBlank(new IntVector2(9, y)));
+                if (y == 2)
+                {
+                    sb.AppendLine("###");
+                }
+                else
+                {
+                    sb.AppendLine("#");
+                }
+            }
+            sb.AppendLine("  #########");
+
+            return sb.ToString();
+
+
+        }
+
+        private char AmphOrBlank(IntVector2 location)
+        {
+            if (amphs.ContainsKey(location))
+            {
+                return amphs[location];
+            }
+            else
+            {
+                return '.';
+            }
+
         }
     }
 }
