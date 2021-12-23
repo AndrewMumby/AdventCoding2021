@@ -13,6 +13,13 @@ namespace AdventCoding2021
             AmphSorter sorter = new AmphSorter(input);
             return sorter.FindCheapest().ToString();
         }
+
+        public static string B(string input)
+        {
+            AmphSorter sorter = new AmphSorter(input);
+            sorter.AddFold();
+            return sorter.FindCheapest().ToString();
+        }
     }
 
     internal class AmphSorter
@@ -55,6 +62,16 @@ namespace AdventCoding2021
                     }
                 }
             }
+        }
+
+        internal void AddFold()
+        {
+            AmphState startState = toDo[0].First();
+            toDo.Remove(0);
+            toDo.Add(0, new HashSet<AmphState>());
+            AmphState newState = new AmphState(startState);
+            newState.Unfold();
+            toDo[0].Add(newState);
         }
 
         private void AddToToDo(int score, AmphState state)
@@ -372,6 +389,7 @@ namespace AdventCoding2021
                     return location;
                 }
             }
+            Console.WriteLine(Draw());
             throw new Exception("Burrow is full");
         }
 
@@ -512,6 +530,72 @@ namespace AdventCoding2021
                 return '.';
             }
 
+        }
+
+        public override bool Equals(object obj)
+        {
+            //Check for null and compare run-time types.
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else
+            {
+                AmphState v = (AmphState)obj;
+                foreach (KeyValuePair<IntVector2, char> pair in v.amphs)
+                {
+                    if (!amphs.ContainsKey(pair.Key))
+                    {
+                        return false;
+                    }
+                    if (amphs[pair.Key] != pair.Value)
+                    {
+                        return false;
+                    }
+                }
+                    return true;
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = 0;
+            foreach (IntVector2 v in amphs.Keys)
+            {
+                hash = hash ^ v.GetHashCode();
+            }
+            return hash;
+        }
+
+        internal void Unfold()
+        {
+            Dictionary<IntVector2, char> newAmphs = new Dictionary<IntVector2, char>();
+            foreach (KeyValuePair<IntVector2, char> pair in amphs)
+            {
+                if (pair.Key.Y == 3)
+                {
+                    newAmphs.Add(new IntVector2(pair.Key.X, 5), pair.Value);
+                }
+                else
+                {
+                    newAmphs.Add(new IntVector2(pair.Key), pair.Value);
+                }
+            }
+            maxY = 5;
+            // Now add the new rows
+            //  3 5 7 9
+            //3#D#C#B#A#
+            //4#D#B#A#C#
+
+            newAmphs.Add(new IntVector2(3, 3), 'D');
+            newAmphs.Add(new IntVector2(5, 3), 'C');
+            newAmphs.Add(new IntVector2(7, 3), 'B');
+            newAmphs.Add(new IntVector2(9, 3), 'A');
+            newAmphs.Add(new IntVector2(3, 4), 'D');
+            newAmphs.Add(new IntVector2(5, 4), 'B');
+            newAmphs.Add(new IntVector2(7, 4), 'A');
+            newAmphs.Add(new IntVector2(9, 4), 'C');
+            amphs = newAmphs;
         }
     }
 }
